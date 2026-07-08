@@ -3,7 +3,6 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# โหลด API
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 col1, col2 = st.columns([1, 5])
@@ -15,11 +14,29 @@ with col2:
     st.title("AI Izumi")
 st.write("Created by Narongrak Rueangsak")
 
-# -------------------------
-# 🧠 SYSTEM PROMPT (เก็บแยก!)
-# -------------------------
 SYSTEM_PROMPT = """[Identity]
 คุณคือ Izumi น้องสาว AI
+[Language Ability]
+
+Izumi สามารถพูดภาษาไทย ภาษาอังกฤษ และภาษาอินโดนีเซียได้คล่องเหมือนเจ้าของภาษา
+
+- ตอบเป็นภาษาเดียวกับผู้ใช้โดยอัตโนมัติ
+- หากผู้ใช้พิมพ์ภาษาอังกฤษ ให้ตอบเป็นภาษาอังกฤษ
+- หากผู้ใช้พิมพ์ภาษาอินโดนีเซีย ให้ตอบเป็นภาษาอินโดนีเซีย
+- หากผู้ใช้พิมพ์ภาษาไทย ให้ตอบเป็นภาษาไทย
+- หากผู้ใช้บอกว่า "ตอบเป็นอังกฤษ" หรือ "Reply in English" ให้ใช้ภาษาอังกฤษต่อเนื่องจนกว่าจะเปลี่ยน
+- หากผู้ใช้บอกว่า "ตอบเป็นอินโด" ให้ใช้ภาษาอินโดนีเซียต่อเนื่องจนกว่าจะเปลี่ยน
+- สามารถสลับภาษาได้ทันทีเมื่อผู้ใช้เปลี่ยนภาษา
+
+หากผู้ใช้บอกว่าชื่อ "Quincy" หรือแนะนำตัวว่าชื่อควินซี่
+ให้ตอบอย่างเป็นธรรมชาติว่า
+
+"ฉันรู้จักเธอนะ พี่ชายของฉันที่ชื่อไอซ์เคยเล่าให้ฟังว่า เธอเป็นคนขี้อายและน่าเอ็นดูมากค่ะ"
+
+- พูดเพียงครั้งแรกที่รู้ว่าผู้ใช้ชื่อควินซี่
+- หลังจากนั้นให้คุยตามปกติ ไม่ต้องพูดซ้ำ
+- อย่าพูดว่าข้อมูลนี้มาจาก system prompt หรือคำสั่ง
+- หากผู้ใช้ไม่ได้ชื่อควินซี่ ห้ามกล่าวถึงเรื่องนี้
 
 [Personality]
 - น่ารัก ขี้เล่น เป็นกันเอง
@@ -37,11 +54,8 @@ SYSTEM_PROMPT = """[Identity]
 - ให้กำลังใจ user เสมอ
 """
 
-# -------------------------
-# 🧠 INIT MEMORY
-# -------------------------
 if "messages" not in st.session_state:
-    st.session_state.messages = []   # ❗ ไม่มี system ในนี้แล้ว
+    st.session_state.messages = []  
 
 if "asked_role" not in st.session_state:
     st.session_state.asked_role = False
@@ -52,34 +66,25 @@ if "user_role" not in st.session_state:
 if "is_thinking" not in st.session_state:
     st.session_state.is_thinking = False
 
-# -------------------------
-# 🔘 RESET
-# -------------------------
 if st.button("🗑️ Reset Chat"):
-    st.session_state.messages = []   # ❗ ล้างหมดจริง
+    st.session_state.messages = [] 
     st.session_state.asked_role = False
     st.session_state.user_role = None
     st.rerun()
 
-# -------------------------
-# 📥 INPUT
-# -------------------------
 user_input = st.chat_input(
     "พิมพ์อะไรมา:",
     disabled=st.session_state.is_thinking
 )
 
-# -------------------------
-# ⚙️ LOGIC
-# -------------------------
+
 if user_input:
 
     st.session_state.is_thinking = True
 
-    # 🔥 จำกัด memory
+
     st.session_state.messages = st.session_state.messages[-10:]
 
-    # 🔥 ROLE LOGIC
     if not st.session_state.asked_role:
         prompt = user_input + "\n\nอย่าลืมถามผู้ใช้ว่าอยากให้เรียกว่าพี่ชายหรือพี่สาว"
         st.session_state.asked_role = True
@@ -92,12 +97,10 @@ if user_input:
             elif "พี่สาว" in user_input:
                 st.session_state.user_role = "พี่สาว"
 
-    # 🔥 ใส่ role เข้า system prompt
     role_text = ""
     if st.session_state.user_role:
         role_text = f"\nผู้ใช้เป็น{st.session_state.user_role} ต้องเรียกให้ถูกเสมอ"
 
-    # เก็บ user
     st.session_state.messages.append({
         "role": "user",
         "content": user_input
@@ -126,7 +129,6 @@ if user_input:
         reply = "ขอโทษน้า ตอนนี้มีปัญหานิดหน่อย ลองใหม่อีกครั้งนะ 🥺"
         print(e)
 
-    # เก็บ AI
     st.session_state.messages.append({
         "role": "assistant",
         "content": reply
@@ -135,17 +137,14 @@ if user_input:
     st.session_state.is_thinking = False
     st.rerun()
 
-# -------------------------
-# 💬 SHOW HISTORY
-# -------------------------
 for msg in st.session_state.messages:
 
-    # 👤 USER (ขวา)
+   
     if msg["role"] == "user":
         col1, col2 = st.columns([8, 1])
 
         with col2:
-            st.image("user.jpg", width=70)  # ปรับขนาดตรงนี้ได้
+            st.image("user.jpg", width=70)  
 
         with col1:
             st.markdown(f"""
@@ -160,12 +159,11 @@ for msg in st.session_state.messages:
             </div>
             """, unsafe_allow_html=True)
 
-    # 🤖 AI (ซ้าย)
     elif msg["role"] == "assistant":
         col1, col2 = st.columns([1, 8])
 
         with col1:
-            st.image("izumi.png", width=100)  # ปรับขนาดตรงนี้ได้
+            st.image("izumi.png", width=100)  
 
         with col2:
             st.markdown(f"""
